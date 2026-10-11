@@ -20,12 +20,12 @@ public sealed class ConfigWatcherTests
             Assert.False(Directory.Exists(sshDirectory));
 
             Directory.CreateDirectory(sshDirectory);
-            File.WriteAllText(config, "Host demo\n  RemoteForward 17899 localhost:7897\n");
+            File.WriteAllText(config, "Host demo\n  RemoteForward 29099 localhost:29097\n");
             await WaitUntilAsync(() => Volatile.Read(ref calls) >= 1);
 
             var previousCalls = Volatile.Read(ref calls);
             var replacement = Path.Combine(sshDirectory, "config.tmp");
-            File.WriteAllText(replacement, "Host demo\n  #RemoteForward 17899 localhost:7897\n");
+            File.WriteAllText(replacement, "Host demo\n  #RemoteForward 29099 localhost:29097\n");
             File.Move(replacement, config, overwrite: true);
             await WaitUntilAsync(() => Volatile.Read(ref calls) > previousCalls);
 
@@ -49,3 +49,5 @@ public sealed class ConfigWatcherTests
         }
     }
 }
+
+
