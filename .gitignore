@@ -1,0 +1,25 @@
+# Build output
+bin/
+obj/
+publish/
+artifacts/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+
+# Test and coverage output
+TestResults/
+coverage/
+
+# Local application data and developer-specific files
+settings.json
+*.local.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
