@@ -39,8 +39,8 @@ public sealed class TrayServiceTests
         {
             var configPath = Path.Combine(directory, "config");
             var config = "Host jump\n LocalForward 2222 localhost:22\n"
-                + "Host proxy\n # SSHTunnelManager: persistent-proxy\n RemoteForward 17899 localhost:7897\n"
-                + "Host login\n RemoteForward 17890 localhost:7897\n";
+                + "Host proxy\n # SSHTunnelManager: persistent-proxy\n RemoteForward 29099 localhost:29097\n"
+                + "Host login\n RemoteForward 29090 localhost:29097\n";
             File.WriteAllText(configPath, config);
             var settings = new SettingsService(Path.Combine(directory, "settings"))
             {
@@ -122,7 +122,11 @@ public sealed class TrayServiceTests
             Assert.False(manager.IsRequested("login"));
             Assert.Contains("等待重连", Text(Find("proxy")));
             RightClickTray();
-            menu.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(menu),
+            if (!menu.IsOpen) menu.IsOpen = true;
+            menu.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+            var menuSource = PresentationSource.FromVisual(menu);
+            Assert.NotNull(menuSource);
+            menu.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, menuSource!,
                 Environment.TickCount, Key.Escape) { RoutedEvent = Keyboard.KeyDownEvent });
             Assert.False(menu.IsOpen);
         }
@@ -152,12 +156,12 @@ public sealed class TrayServiceTests
                 using var tray = new TrayService(manager, () => { }, () => { }, () => { }, dark);
                 tray.SetTunnels(SshConfigParser.ParseText(
                     "Host node-a-jump\n LocalForward 2222 localhost:22\n"
-                    + "Host node-a-proxy\n # SSHTunnelManager: persistent-proxy\n RemoteForward 17899 localhost:7897\n"
+                    + "Host node-a-proxy\n # SSHTunnelManager: persistent-proxy\n RemoteForward 29099 localhost:29097\n"
                     + "Host node-b-jump\n LocalForward 2223 localhost:22\n"
-                    + "Host node-b-proxy\n # SSHTunnelManager: persistent-proxy\n RemoteForward 17899 localhost:7897\n"
+                    + "Host node-b-proxy\n # SSHTunnelManager: persistent-proxy\n RemoteForward 29099 localhost:29097\n"
                     + "Host node-c-jump\n LocalForward 2224 localhost:22\n"
                     + "Host unusually-long-host-name-to-verify-ellipsis-and-status-alignment\n"
-                    + " # SSHTunnelManager: persistent-proxy\n RemoteForward 17900 localhost:7897\n"));
+                    + " # SSHTunnelManager: persistent-proxy\n RemoteForward 29100 localhost:29097\n"));
                 manager.Start("node-b-proxy");
                 tray.RebuildMenu();
                 var menu = (ContextMenu)typeof(TrayService).GetField("_menu", BindingFlags.Instance | BindingFlags.NonPublic)!
@@ -205,3 +209,5 @@ public sealed class TrayServiceTests
         await completion.Task.WaitAsync(TimeSpan.FromSeconds(15));
     }
 }
+
+
