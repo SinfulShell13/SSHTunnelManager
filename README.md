@@ -1,4 +1,4 @@
-# SSH 隧道管理器（托盘精简版）
+# SSH 隧道管理器
 
 常驻系统托盘，只做两件事：
 
@@ -85,7 +85,7 @@ services:
 Windows 常见位置是 `%USERPROFILE%\.ssh\config`，Linux/macOS 是 `~/.ssh/config`。把下面的 Host 块加入本机配置：
 
 ```sshconfig
-# 这一个 Host 由 SSHTunnelManager 常驻维护
+# 这个 Host 由 SSHTunnelManager 常驻维护，只负责连接容器
 Host docker-tunnel
   HostName <DOCKER_HOST>
   Port <DOCKER_SSH_PORT>
@@ -99,9 +99,6 @@ Host docker-tunnel
   # 本机端口 -> 远端 Docker 容器的 SSH 入口
   LocalForward 127.0.0.1:<LOCAL_CONTAINER_SSH_PORT> 127.0.0.1:<CONTAINER_SSH_HOST_PORT>
 
-  # 本机 HTTP 代理 -> 远端 SSH 主机上的代理端口
-  RemoteForward 127.0.0.1:<REMOTE_PROXY_PORT> 127.0.0.1:<LOCAL_PROXY_PORT>
-
 # 通过上面的本机端口登录容器
 Host docker-container
   HostName 127.0.0.1
@@ -109,18 +106,32 @@ Host docker-container
   User <CONTAINER_USER>
   IdentityFile ~/.ssh/id_ed25519
   IdentitiesOnly yes
+
+# 这个 Host 由 SSHTunnelManager 常驻维护，只负责提供本机代理
+Host docker-proxy
+  # SSHTunnelManager: persistent-proxy
+  HostName <DOCKER_HOST>
+  Port <DOCKER_SSH_PORT>
+  User <DOCKER_HOST_USER>
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+  ExitOnForwardFailure yes
+  ServerAliveInterval 60
+  ServerAliveCountMax 3
+
+  # 本机 HTTP 代理 -> 远端 SSH 主机上的代理端口
+  RemoteForward 127.0.0.1:<REMOTE_PROXY_PORT> 127.0.0.1:<LOCAL_PROXY_PORT>
 ```
 
 其中：
 
 - `<LOCAL_CONTAINER_SSH_PORT>` 是本机未占用的端口。
 - `<CONTAINER_SSH_HOST_PORT>` 是远端 Docker 主机上的容器 SSH 入口端口。
-- `<LOCAL_PROXY_PORT>` 是本机 Clash 或其他 HTTP/mixed 代理端口。
-- `<REMOTE_PROXY_PORT>` 是远端 SSH 主机上用于接收代理流量的端口，选择一个未占用的端口即可。
+- `docker-proxy` 与 `docker-tunnel` 使用相同的远端主机、账号和密钥，但它们是两个独立的 SSH 进程。
 
-`LocalForward` 会让本机的 `127.0.0.1:<LOCAL_CONTAINER_SSH_PORT>` 通到容器 SSH；`RemoteForward` 会让远端 SSH 主机的 `127.0.0.1:<REMOTE_PROXY_PORT>` 通到本机代理。两条转发写在同一个 Host 中，因此连接容器和代理使用同一条 SSH 会话。
+`LocalForward` 会让本机的 `127.0.0.1:<LOCAL_CONTAINER_SSH_PORT>` 通到容器 SSH。`docker-proxy` 中的 `RemoteForward` 会让远端 SSH 主机的 `127.0.0.1:<REMOTE_PROXY_PORT>` 通到本机代理。`<LOCAL_PROXY_PORT>` 是本机 Clash 或其他 HTTP/mixed 代理端口，`<REMOTE_PROXY_PORT>` 是远端 SSH 主机上用于接收代理流量的端口，选择一个未占用的端口即可。
 
-由于这个 Host 含有启用的 `LocalForward`，SSHTunnelManager 会自动识别并托管它。保存配置后，托盘中应出现 `docker-tunnel`；点击启动，或启用开机自启让它自动运行。软件只读取配置，不会改写 SSH config。
+保存配置后，托盘中应出现 `docker-tunnel` 和 `docker-proxy`；可以分别启动和停止，也可以启用开机自启让它们自动运行。软件只读取配置，不会改写 SSH config。
 
 ### 4. 验证 SSH 直连容器
 
@@ -285,6 +296,7 @@ dotnet publish SSHTunnelManager.csproj -c Release -r win-x64 --self-contained fa
 ## 许可证
 
 本项目使用 [MIT License](LICENSE)。第三方组件仍受其各自许可证约束。
+
 
 
 
