@@ -14,7 +14,7 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - name: Restore
-        run: dotnet restore SSHTunnelManager.csproj
+        run: dotnet restore Tests/SSHTunnelManager.Tests.csproj
       - name: Build application
         run: dotnet build SSHTunnelManager.csproj -c Release --no-restore
       - name: Test
